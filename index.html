@@ -44,6 +44,7 @@
 			var dae, skin;
 			
 			var particleCloud, sparksEmitter, emitterPos;
+			var particles, geometry, materials = [], parameters, i, h, color;
 			
 			var clock = new THREE.Clock();
 			var morphs = [];
@@ -77,6 +78,8 @@
 				} );
 				
 				// Particles woo
+				
+				/*
 				
 				particleCloud = new THREE.Object3D(); // Just a group
 				particleCloud.y = 10;
@@ -129,6 +132,43 @@
 					particleCloud.add( particle );
 					
 				}
+*/
+				geometry = new THREE.Geometry();
+
+				for ( i = 0; i < 200; i ++ ) {
+
+					var vertex = new THREE.Vector3();
+					vertex.x = Math.random() * 2000 - 1000;
+					vertex.y = Math.random() * 2000 - 1000;
+					vertex.z = Math.random() * 2000 - 1000;
+
+					geometry.vertices.push( vertex );
+
+				}
+
+				parameters = [ [ [1.0, 1.0, 1.0], 5 ], [ [0.95, 1, 1], 4 ], [ [0.90, 1, 1], 3 ], [ [0.85, 1, 1], 2 ], [ [0.80, 1, 1], 1 ] ];
+				//parameters = [ [ 0xff0000, 5 ], [ 0xff3300, 4 ], [ 0xff6600, 3 ], [ 0xff9900, 2 ], [ 0xffaa00, 1 ] ];
+				//parameters = [ [ 0xffffff, 5 ], [ 0xdddddd, 4 ], [ 0xaaaaaa, 3 ], [ 0x999999, 2 ], [ 0x777777, 1 ] ];
+
+				for ( i = 0; i < parameters.length; i ++ ) {
+
+					size  = parameters[i][1];
+					color = parameters[i][0];
+
+					//materials[i] = new THREE.ParticleBasicMaterial( { color: color, size: size } );
+
+					materials[i] = new THREE.ParticleBasicMaterial( { size: size } );
+					materials[i].color.setHSV( color[0], color[1], color[2] );
+
+					particles = new THREE.ParticleSystem( geometry, materials[i] );
+
+					particles.rotation.x = Math.random() * 6;
+					particles.rotation.y = Math.random() * 6;
+					particles.rotation.z = Math.random() * 6;
+
+					scene.add( particles );
+
+				}
 
 				// Lights
 
@@ -140,7 +180,8 @@
 
 				// Renderer
 
-				renderer = new THREE.CanvasRenderer();
+				renderer = new THREE.WebGLRenderer();
+				//renderer = new THREE.CanvasRenderer();
 				renderer.setSize( window.innerWidth, window.innerHeight );
 
 				container.appendChild( renderer.domElement );
