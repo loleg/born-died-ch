@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<title>webgl</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #fff;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			#info {
+				color: #fff;
+				position: absolute;
+				top: 10px;
+				width: 100%;
+				text-align: center;
+				z-index: 100;
+				display:block;
+
+			}
+
+			a { color: red }
+		</style>
+	</head>
+	<body>
+
+		<script src="lib/Three.js"></script>
+
+		<script type="text/javascript" src="lib/Stats.js"></script> 
+		<script type="text/javascript" src="lib/Detector.js"></script> 
+
+		<script>
+
+			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+
+			var container, stats;
+
+			var camera, scene, renderer, objects;
+			var particleLight, pointLight;
+			var dae, skin;
+			
+			var particleCloud, sparksEmitter, emitterPos;
+			
+			var clock = new THREE.Clock();
+			var morphs = [];
+
+			init();
+			animate();
+				
+			function init() {
+
+				container = document.createElement( 'div' );
+				document.body.appendChild( container );
+
+				scene = new THREE.Scene();
+				scene.fog = new THREE.FogExp2( 0x000000, 0.035 );
+
+				camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 1, 2000 );
+				camera.position.set( 2, 4, 5 );
+				scene.add( camera );
+
+
+				// Add Blender exported model
+				var object;
+				var material	= new THREE.MeshBasicMaterial({ color: 0x500000, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false });
+				var loader = new THREE.JSONLoader();
+				loader.load( "obj/schweiz.js", function ( geometry ) {
+					object = new THREE.Mesh( geometry, material );
+					object.scale.x = 2;
+					object.scale.y = 2;
+					object.scale.z = 2;
+					scene.add(object);
+				} );
+				
+				// Particles woo
+				
+				particleCloud = new THREE.Object3D(); // Just a group
+				particleCloud.y = 10;
+				scene.add( particleCloud );
+				
+				var hearts = function ( context ) {
+					context.globalAlpha = 0.5;
+					var x = 0, y = 0;
+					context.scale(0.1, -0.1); // Scale so canvas render can redraw within bounds
+					context.beginPath();
+					//M 8.1220964,1042.5904 0,1036.5252 l 18.274716,-25.6088 12.995354,-1.3478 19.493036,9.7717 8.122096,-13.1413 -13.807566,5.7283 -12.183147,-19.88055 10.964836,-7.41307 3.654942,16.17392 15.025877,-8.4239 -2.436631,-2.69566 -0.406103,-4.04349 -6.903781,0 c 0,0 2.766201,-8.71554 1.624419,-10.10874 -6.903785,-8.42394 -2.842735,-28.30445 20.711347,-27.29358 23.554081,1.01088 28.722885,21.43784 23.554081,27.29358 -21.11745,23.92401 -5.17929,51.99329 -23.147977,59.30459 -17.968688,7.3113 -38.173855,-4.0435 -38.173855,-4.0435 l -11.777039,21.5653 -9.340412,-5.7283 10.964831,-24.261 z
+
+
+					context.bezierCurveTo( x + 2.5, y + 2.5, x + 2.0, y, x, y );
+					context.bezierCurveTo( x - 3.0, y, x - 3.0, y + 3.5,x - 3.0,y + 3.5 );
+					context.bezierCurveTo( x - 3.0, y + 5.5, x - 1.0, y + 7.7, x + 2.5, y + 9.5 );
+					context.bezierCurveTo( x + 6.0, y + 7.7, x + 8.0, y + 5.5, x + 8.0, y + 3.5 );
+					context.bezierCurveTo( x + 8.0, y + 3.5, x + 8.0, y, x + 5.0, y );
+					context.bezierCurveTo( x + 3.5, y, x + 2.5, y + 2.5, x + 2.5, y + 2.5 );
+					context.closePath();
+					context.fill();
+					context.lineWidth = 0.5; //0.05
+					context.stroke();
+				}
+				var heartMaterial = new THREE.ParticleBasicMaterial( {  
+						program: hearts, blending:THREE.AdditiveBlending } );
+						
+				var PI2 = Math.PI * 2;
+				var program = function ( context ) {
+
+					context.beginPath();
+					context.arc( 0, 0, 1, 0, PI2, true );
+					context.closePath();
+					context.fill();
+
+				}
+				
+				for (var i = 0; i < 1000; i++) {
+				
+					//particle = new THREE.Particle( heartMaterial );
+					//particle.scale.x = particle.scale.y = Math.random() * 20 +20;
+					//particle.position.x = i * 30;
+					
+					particle = new THREE.Particle( new THREE.ParticleCanvasMaterial( { color: Math.random() * 0x0000a0 + 0xaa0000, program: program } ) );
+					particle.position.x = Math.random() * 2000 - 1000;
+					particle.position.y = Math.random() * 2000 - 1000;
+					particle.position.z = Math.random() * 2000 - 1000;
+					particle.scale.x = particle.scale.y = Math.random() * 10 + 5;
+					
+					particleCloud.add( particle );
+					
+				}
+
+				// Lights
+
+				scene.add( new THREE.AmbientLight( 0xcccccc ) );
+
+				pointLight = new THREE.PointLight( 0xff4400, 5, 30 );
+				pointLight.position.set( 5, 0, 0 );
+				scene.add( pointLight );
+
+				// Renderer
+
+				renderer = new THREE.CanvasRenderer();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+				container.appendChild( renderer.domElement );
+
+				// Stats
+
+				stats = new Stats();
+				stats.domElement.style.position = 'absolute';
+				stats.domElement.style.top = '0px';
+				container.appendChild( stats.domElement );
+
+				stats.domElement.children[ 0 ].children[ 0 ].style.color = "#aaa";
+				stats.domElement.children[ 0 ].style.background = "transparent";
+				stats.domElement.children[ 0 ].children[ 1 ].style.display = "none";
+
+				// Events
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+			}
+
+			//
+
+			function onWindowResize( event ) {
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+			}
+
+			//
+
+			var t = 0;
+			function animate() {
+
+				requestAnimationFrame( animate );
+
+				// animate morphs
+
+				var delta = clock.getDelta();
+
+				if ( morphs.length ) {
+
+					for ( var i = 0; i < morphs.length; i ++ )
+						morphs[ i ].updateAnimation( 1000 * delta );
+
+
+				}
+
+				render();
+				stats.update();
+
+			}
+
+			function render() {
+
+				var timer = Date.now() * 0.0005;
+
+				camera.position.x = Math.cos( timer ) * 10;
+				camera.position.y = 4;
+				camera.position.z = Math.sin( timer ) * 10;
+
+				camera.lookAt( scene.position );
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+	</body>
+</html>
