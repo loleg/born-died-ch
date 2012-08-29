@@ -57,13 +57,13 @@
 			var particles, geometry, materials = [], parameters, i, h, color;
 
 			var fetus = null, 
-				babies = new Array(), 
-				babyMax = 20, 
+				babyGRP, 
+				babyMax = 11, 
 				babyStart = 2,
 				babySteps = 3000;
 
 			var corpse = null, 
-				zombies = new Array(), 
+				zombGRP, 
 				zombMax = 1, 
 				zombEnd = 4,
 				zombSteps = 5000;
@@ -119,6 +119,12 @@
 				//,  bevelEnabled: true, bevelSegments: 2, steps: 2 }; // bevelSegments: 2, steps: 2 , bevelSegments: 5, bevelSize: 8, bevelThickness:5,
 
 				//var material2 = new THREE.MeshBasicMaterial({ color: 0x000000, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false });
+				
+				// Groups
+				babyGRP = new THREE.Object3D();
+				zombGRP = new THREE.Object3D();
+				scene.add(babyGRP);
+				scene.add(zombGRP);
 				
 				$.get('obj/fetus.svg', function(data) {
 					var path = $(data).find('g path').attr('d');
@@ -176,13 +182,12 @@
 				var s = 0.005, 
 					top = 0.3;				
 				mesh.scale.set( s, -s, s );
-				mesh.position.set( 0, top, 0 );			
-				scene.add(mesh);	
+				mesh.position.set( 0, top, 0 );
 				return mesh;
 			}
 						
 			function animateBabies() {	
-				if (babies.length < babyMax) {
+				if (babyGRP.children.length < babyMax) {
 					var b = makeBaby();
 					if (b == null) return;
 					var area = 6;
@@ -201,12 +206,27 @@
 						animateBabies();
 					})
 					.start();		
-					babies.push(b);
-				} 
-				if (babies.length == 2) {
+					babyGRP.add(b);
+				} else if (babyGRP.children.length == babyMax) {
+					var b = babyGRP.children[0];
+					new TWEEN.Tween( b.position ).to( {
+						x: b.position.x,
+						y: b.position.y - 1,
+						z: b.position.z 
+					}, babySteps )
+					.onComplete(function() {
+						babyGRP.remove(b);
+						animateBabies();
+					})
+					.start();	
+				}
+				if (babyGRP.children.length == 2 && !startedZombies) {
 					animateZombies();
+					startedZombies = true;
 				}
 			}
+			
+			var startedZombies = false;
 			
 			function makeZombie() {
 				if (corpse == null) return null;
@@ -216,13 +236,12 @@
 				var s = 0.005, 
 					top = 0.3;				
 				mesh.scale.set( s, -s, s );
-				mesh.position.set( 0, top, 0 );			
-				scene.add(mesh);	
+				mesh.position.set( 0, top, 0 );	
 				return mesh;
 			}
 						
 			function animateZombies() {	
-				if (zombies.length < zombMax) {
+				if (zombGRP.children.length < zombMax) {
 					var b = makeZombie();
 					if (b == null) return;
 					var area = 6;
@@ -238,11 +257,11 @@
 					}, zombSteps )
 					//.easing( TWEEN.Easing.Cubic.In)
 					.onComplete(function() {
-						scene.remove(zombies.pop());
+						zombGRP.remove(b);
 						animateZombies();
 					})
 					.start();		
-					zombies.push(b);
+					zombGRP.add(b);
 				}
 			}
 			
