@@ -35,6 +35,8 @@
 		
 		<script src="lib/d3-threeD.js"></script>
 		<script src="lib/jquery-1.8.0.min.js"></script>
+		
+		<script src="obj/schweiz.js"></script>
 
 		<script>
 
@@ -48,6 +50,8 @@
 			
 			var particleCloud, sparksEmitter, emitterPos;
 			var particles, geometry, materials = [], parameters, i, h, color;
+
+			var schweiz = null;
 
 			var fetus = null, 
 				babyGRP, 
@@ -92,19 +96,19 @@
 				scene.add(plane);
 
 				// Add Blender exported model
-				var object;
 				var loader = new THREE.JSONLoader();
-				loader.load( "obj/schweiz.js", function ( geometry ) {
-					object = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial({ color: 0x500000 }) );
-					object.scale.x = 2;
-					object.scale.y = 2;
-					object.scale.z = 2;
+				loader.createModel( MODEL_Schweiz, function(geometry) {
+				
+					schweiz = new THREE.Mesh(geometry , new THREE.MeshBasicMaterial({ color: 0x500000 }) );
+					schweiz.scale.x = 2;
+					schweiz.scale.y = 2;
+					schweiz.scale.z = 2;
 
 					var delta = THREE.GeometryUtils.center( geometry );
-					object.position.subSelf(delta);
+					schweiz.position.subSelf(delta);
 					
-					scene.add(object);
-				} );
+					scene.add(schweiz);
+				});
 				
 				// Particles woo
 
@@ -114,25 +118,21 @@
 				//var material2 = new THREE.MeshBasicMaterial({ color: 0x000000, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false });
 				
 				// Groups
+				
 				babyGRP = new THREE.Object3D();
 				zombGRP = new THREE.Object3D();
 				scene.add(babyGRP);
 				scene.add(zombGRP);
 				
-				$.get('obj/fetus.svg', function(data) {
-					var path = $(data).find('g path').attr('d');
-					var object = transformSVGPath( path );
-					fetus = new THREE.ExtrudeGeometry( object, extrudeSettings );
-					
-					// Start animation when loaded
-					animateBabies();
-				});	
+				// Sketches
 				
-				$.get('obj/corpse.svg', function(data) {
-					var path = $(data).find('g path').attr('d');
-					var object = transformSVGPath( path );
-					corpse = new THREE.ExtrudeGeometry( object, extrudeSettings );
-				});		
+				fetus = new THREE.ExtrudeGeometry( 
+					transformSVGPath( "M 8.1220964,1042.5904 0,1036.5252 l 18.274716,-25.6088 12.995354,-1.3478 19.493036,9.7717 8.122096,-13.1413 -13.807566,5.7283 -12.183147,-19.88055 10.964836,-7.41307 3.654942,16.17392 15.025877,-8.4239 -2.436631,-2.69566 -0.406103,-4.04349 -6.903781,0 c 0,0 2.766201,-8.71554 1.624419,-10.10874 -6.903785,-8.42394 -2.842735,-28.30445 20.711347,-27.29358 23.554081,1.01088 28.722885,21.43784 23.554081,27.29358 -21.11745,23.92401 -5.17929,51.99329 -23.147977,59.30459 -17.968688,7.3113 -38.173855,-4.0435 -38.173855,-4.0435 l -11.777039,21.5653 -9.340412,-5.7283 10.964831,-24.261 z" ), 
+					extrudeSettings );
+								
+				corpse = new THREE.ExtrudeGeometry( 
+						transformSVGPath( "m 0,1020.3013 11.26464,21.6628 48.524596,-36.3935 -28.594853,29.8946 -8.665107,-2.1662 5.199065,19.0632 73.653409,-64.12179 -26.861835,28.59489 5.199065,5.199 40.726,-41.59249 -16.4637,-5.19906 9.53162,-2.59954 c 0,0 10.39812,-2.59953 11.26463,-10.39813 0.86651,-7.79859 -5.19906,-18.19672 -13.86417,-14.73068 -8.6651,3.46605 -13.864166,-0.86651 -13.864166,-0.86651 l 0.86651,6.06558 -7.798594,3.46604 2.599529,13.86417 -16.463701,-1.73302 -43.325532,29.46136 5.199064,4.33258 31.19438,-19.92977 -57.1897,43.75877 z" ), 
+						extrudeSettings );
 
 				// Lights
 
@@ -164,6 +164,10 @@
 				// Events
 
 				window.addEventListener( 'resize', onWindowResize, false );
+				
+				// Start animation when loaded
+				
+				animateBabies();
 
 			}
 			
@@ -178,15 +182,21 @@
 				mesh.position.set( 0, top, 0 );
 				return mesh;
 			}
+			
+			function getRandVector(obj) {
+				var rv = Math.floor(obj.geometry.vertices.length * Math.random());
+				return obj.geometry.vertices[rv];
+			}
 						
 			function animateBabies() {	
 				if (babyGRP.children.length < babyMax) {
 					var b = makeBaby();
 					if (b == null) return;
 					var area = 6;
-					var xr = b.position.x + (area/2) - Math.random() * area,
+					var randvec = getRandVector(schweiz);
+					var xr = b.position.x + randvec.x,
 						yr = b.position.y + babyStart, 
-						zr = b.position.z + (area/2) - Math.random() * area;
+						zr = b.position.z + randvec.z;
 					b.rotation.set( 0, ( Math.random() * 360 ) * Math.PI / 180, 0 );
 					b.position.set( xr, yr, zr );
 					new TWEEN.Tween( b.position ).to( {

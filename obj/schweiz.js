@@ -1,4 +1,4 @@
-{
+var MODEL_Schweiz = {
 
     "metadata" :
     {
@@ -46,4 +46,4 @@
 
 
 
-}
+};
