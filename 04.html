@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<title>webgl</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #200;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			#info {
+				color: #fff;
+				position: absolute;
+				top: 10px;
+				left: 20px;
+				z-index: 100;
+				display:block;
+				font-size:130%;
+			}
+			
+			#info p { color: #555; margin: 0; }			
+
+			a { color: red }
+		</style>
+	</head>
+	<body>
+          <div id="info">
+          	<h1>born/swiss</h1>
+          	<p>a <a href="http://make.opendata.ch">make.opendata.ch</a> project</p>
+          	<p>Geneva 29.09.2012</p>
+          </div>
+		<script src="lib/three.js"></script>
+
+		<script src="lib/Stats.js"></script> 
+		<script src="lib/Detector.js"></script>
+		<script src="lib/Tween.js"></script> 
+		
+		<script src="lib/d3-threeD.js"></script>
+		<script src="lib/jquery-1.8.0.min.js"></script>
+		
+		<script src="obj/schweiz.js"></script>
+
+		<script>
+
+			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+
+			var container, stats;
+
+			var camera, scene, renderer, objects;
+			var particleLight, pointLight;
+			var dae, skin;
+			
+			var particleCloud, sparksEmitter, emitterPos;
+			var particles, geometry, materials = [], parameters, i, h, color;
+
+			var schweiz = null;
+
+			var fetus = null, 
+				babyGRP,
+				babyMax = 111, 
+				babyStart = 5,
+				babySteps = 100;
+
+			var corpse = null, 
+				zombGRP,
+				zombMax = 1, 
+				zombEnd = 4,
+				zombSteps = 5000;
+
+                        var DSX = 10, DSY = 0, DSZ = 12;
+				
+			var PI2 = Math.PI * 2;
+			
+			var clock = new THREE.Clock();
+			var morphs = [];
+
+			init();
+			animate();
+				
+			function init() {
+
+				container = document.createElement( 'div' );
+				document.body.appendChild( container );
+
+				scene = new THREE.Scene();
+				scene.fog = new THREE.FogExp2( 0x000000, 0.035 );
+
+				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 2000 );
+				camera.position.set( -2, 4, 5 );
+				camera.lookAt( scene.position );
+				scene.add( camera );
+
+				// Flat ground
+				var plane = new THREE.Mesh(
+								new THREE.PlaneGeometry(300, 300), 
+								new THREE.MeshBasicMaterial({
+									color: 0xdddddd
+								}));
+				plane.rotation.x = -90 * Math.PI / 180;
+				plane.overdraw = true;
+				scene.add(plane);
+
+				// Add Blender exported model
+				var loader = new THREE.JSONLoader();
+				loader.createModel( MODEL_Schweiz, function(geometry) {
+				
+					schweiz = new THREE.Mesh(geometry , new THREE.MeshBasicMaterial({ color: 0x500000 }) );
+					schweiz.scale.x = 2;
+					schweiz.scale.y = 2;
+					schweiz.scale.z = 2;
+
+					var delta = THREE.GeometryUtils.center( geometry );
+					schweiz.position.subSelf(delta);
+					
+					/*
+					for (var i = 0; i < 50; i++) {
+						var ix = Math.floor(schweiz.geometry.vertices.length * Math.random());
+						schweiz.geometry.vertices[ix].y += 1;
+					}
+					*/
+					
+					scene.add(schweiz);
+				});
+				
+				// Particles woo
+
+				var extrudeSettings = {	amount: 4, bevelEnabled: false }; 
+				//,  bevelEnabled: true, bevelSegments: 2, steps: 2 }; // bevelSegments: 2, steps: 2 , bevelSegments: 5, bevelSize: 8, bevelThickness:5,
+
+				//var material2 = new THREE.MeshBasicMaterial({ color: 0x000000, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false });
+				
+				// Groups
+				
+				babyGRP = new THREE.Object3D();
+				zombGRP = new THREE.Object3D();
+				scene.add(babyGRP);
+				scene.add(zombGRP);
+				
+				// Sketches
+				
+				fetus = new THREE.ExtrudeGeometry( 
+					transformSVGPath( "M 8.1220964,1042.5904 0,1036.5252 l 18.274716,-25.6088 12.995354,-1.3478 19.493036,9.7717 8.122096,-13.1413 -13.807566,5.7283 -12.183147,-19.88055 10.964836,-7.41307 3.654942,16.17392 15.025877,-8.4239 -2.436631,-2.69566 -0.406103,-4.04349 -6.903781,0 c 0,0 2.766201,-8.71554 1.624419,-10.10874 -6.903785,-8.42394 -2.842735,-28.30445 20.711347,-27.29358 23.554081,1.01088 28.722885,21.43784 23.554081,27.29358 -21.11745,23.92401 -5.17929,51.99329 -23.147977,59.30459 -17.968688,7.3113 -38.173855,-4.0435 -38.173855,-4.0435 l -11.777039,21.5653 -9.340412,-5.7283 10.964831,-24.261 z" ), 
+					extrudeSettings );
+								
+				corpse = new THREE.ExtrudeGeometry( 
+						transformSVGPath( "m 0,1020.3013 11.26464,21.6628 48.524596,-36.3935 -28.594853,29.8946 -8.665107,-2.1662 5.199065,19.0632 73.653409,-64.12179 -26.861835,28.59489 5.199065,5.199 40.726,-41.59249 -16.4637,-5.19906 9.53162,-2.59954 c 0,0 10.39812,-2.59953 11.26463,-10.39813 0.86651,-7.79859 -5.19906,-18.19672 -13.86417,-14.73068 -8.6651,3.46605 -13.864166,-0.86651 -13.864166,-0.86651 l 0.86651,6.06558 -7.798594,3.46604 2.599529,13.86417 -16.463701,-1.73302 -43.325532,29.46136 5.199064,4.33258 31.19438,-19.92977 -57.1897,43.75877 z" ), 
+						extrudeSettings );
+
+				// Lights
+
+				scene.add( new THREE.AmbientLight( 0xcccccc ) );
+
+				pointLight = new THREE.PointLight( 0xff4400, 5, 30 );
+				pointLight.position.set( 5, 0, 0 );
+				scene.add( pointLight );
+
+				// Renderer
+
+				renderer = new THREE.WebGLRenderer();
+				//renderer = new THREE.CanvasRenderer();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+				container.appendChild( renderer.domElement );
+
+				// Stats
+
+				stats = new Stats();
+				stats.domElement.style.position = 'absolute';
+				stats.domElement.style.top = '0px';
+				container.appendChild( stats.domElement );
+
+				stats.domElement.children[ 0 ].children[ 0 ].style.color = "#aaa";
+				stats.domElement.children[ 0 ].style.background = "transparent";
+				stats.domElement.children[ 0 ].children[ 1 ].style.display = "none";
+
+				// Events
+
+				window.addEventListener( 'resize', onWindowResize, false );
+				
+				// Start animation when loaded
+				
+				animateBabies();
+
+			}
+			
+			function makeBaby() {
+				if (fetus == null) return null;
+				var mesh = new THREE.Mesh( fetus, new THREE.MeshBasicMaterial( { color: 0xffffff } ));				
+				var delta = THREE.GeometryUtils.center( mesh.geometry );
+				mesh.position.subSelf(delta);
+				var s = 0.003, 
+					top = 0.3;				
+				mesh.scale.set( s, -s, s );
+				mesh.position.set( 0, top, 0 );
+				return mesh;
+			}
+			
+			function getRandVector(obj) {
+				var rv = Math.floor(obj.geometry.vertices.length * Math.random());
+				return obj.geometry.vertices[rv];
+			}
+						
+			function animateBabies() {	
+				if (babyGRP.children.length < babyMax) {
+					var b = makeBaby();
+					if (b == null) return;
+					var area = 6;
+					var randvec = getRandVector(schweiz);
+					var randscale = 2;
+					var xr = b.position.x + randvec.x + randscale * (Math.random() - 0.5),
+					    yr = b.position.y + babyStart, 
+					    zr = b.position.z + randvec.z + randscale * (Math.random() - 0.5);
+					b.rotation.set( 0, ( Math.random() * 360 ) * Math.PI / 180, 0 );
+					b.position.set( xr, yr, zr );
+					new TWEEN.Tween( b.position ).to( {
+						x: xr,
+						y: yr - babyStart,
+						z: zr 
+					}, babySteps )
+					.easing( TWEEN.Easing.Cubic.EaseOut)
+					.onComplete(function() {
+						animateBabies();
+					})
+					.start();		
+					babyGRP.add(b);
+				} else if (babyGRP.children.length == babyMax) {
+					var b = babyGRP.children[0];
+					new TWEEN.Tween( b.position ).to( {
+						x: b.position.x,
+						y: b.position.y - 1,
+						z: b.position.z 
+					}, babySteps )
+					.onComplete(function() {
+						babyGRP.remove(b);
+						animateBabies();
+					})
+					.start();	
+				}
+				if (babyGRP.children.length == 2 && !startedZombies) {
+					animateZombies();
+					startedZombies = true;
+				}
+			}
+			
+			var startedZombies = false;
+			
+			function makeZombie() {
+				if (corpse == null) return null;
+				var mesh = new THREE.Mesh( corpse, new THREE.MeshBasicMaterial( { color: 0x000000 } ));				
+				var delta = THREE.GeometryUtils.center( mesh.geometry );
+				mesh.position.subSelf(delta);
+				var s = 0.003, 
+					top = 0.3;				
+				mesh.scale.set( s, -s, s );
+				mesh.position.set( 0, top, 0 );	
+				return mesh;
+			}
+						
+			function animateZombies() {	
+				if (zombGRP.children.length < zombMax) {
+					var b = makeZombie();
+					if (b == null) return;
+					var area = 6;
+                                        var randvec = getRandVector(schweiz);
+                                        var xr = b.position.x + randvec.x,
+                                            yr = 0,
+                                            zr = b.position.z + randvec.z;
+
+					b.rotation.set( 0, ( Math.random() * 360 ) * Math.PI / 180, 0 );
+					b.position.set( xr, yr, zr );
+					new TWEEN.Tween( b.position ).to( {
+						x: xr,
+						y: zombEnd,
+						z: zr 
+					}, zombSteps )
+					//.easing( TWEEN.Easing.Cubic.In)
+					.onComplete(function() {
+						zombGRP.remove(b);
+						animateZombies();
+					})
+					.start();		
+					zombGRP.add(b);
+				}
+			}
+			
+			//
+
+			function onWindowResize( event ) {
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+			}
+
+			//
+
+			var t = 0;
+			function animate() {
+
+				requestAnimationFrame( animate );
+
+				// animate morphs
+
+				var delta = clock.getDelta();
+
+				if ( morphs.length ) {
+
+					for ( var i = 0; i < morphs.length; i ++ )
+						morphs[ i ].updateAnimation( 1000 * delta );
+
+
+				}
+
+				render();
+				
+				stats.update();
+				
+			}
+
+                        var tstart = null;
+                        var objinfo = $("#info");
+
+			function render() {
+			
+				
+				TWEEN.update();
+
+				var timer = Date.now() * 0.0005;
+                if (tstart == null) tstart = timer;
+                var tsince = timer - tstart;
+                
+                var speed = 1;// + tsince;
+
+                if (tsince < 150000 && babyGRP.children.length > 0) {
+                  var pos = babyGRP.children[babyGRP.children.length-1].position;
+                  
+                } else if(false) {
+                  babySteps = 5000;
+                  
+                }
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+	</body>
+</html>
