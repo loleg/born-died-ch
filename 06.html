@@ -52,7 +52,7 @@ var zombStats = [
 				margin: 0px;
 				overflow: hidden;
 			}
-
+			
 			#info {
 				color: #fff;
 				position: absolute;
@@ -77,17 +77,22 @@ var zombStats = [
 				right:10px; 
 				width: 20%;
 			}
+			
+			.hidden { visibility:hidden; }
 		</style>
 	</head>
 	<body>
           
           <div id="info">
-          	<h1><a href="#" class="borndied">born</a>/swiss/2011</h1>
-          	<p>a <a href="http://make.opendata.ch">make.opendata.ch</a> project</p>
-          	<p>Geneva 29.09.2012</p>
+          	<div id="loading">Loading, please wait ...</div>
+          	<div class="hidden">
+		      	<h1><a href="#" class="borndied">born</a>/swiss/2011</h1>
+		      	<p>a <a href="http://make.opendata.ch">make.opendata.ch</a> project</p>
+		      	<p>Geneva 29.09.2012</p>
+		    </div>
           </div>
           
-          <img src="obj/legend.png" class="legend">
+          <img src="obj/legend.png" class="legend hidden">
           
 		<script src="lib/three.js"></script>
 
@@ -163,6 +168,11 @@ var zombStats = [
 				animateBabies();
 				animateBabies();
 			});
+			
+			function readyInfo() {
+				$('#loading').hide();
+				$('.hidden').removeClass('hidden');
+			}
 				
 			var PI2 = Math.PI * 2;
 			
@@ -280,6 +290,8 @@ var zombStats = [
 				animateBabies();
 				animateBabies();
 				animateBabies();
+				
+				readyInfo();
 			}
 			
 			function makeBaby() {
