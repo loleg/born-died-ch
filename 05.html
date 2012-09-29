@@ -1,9 +1,31 @@
 <!doctype html>
-<html lang="en">
-	<head>
-	
-	
-	
+<html lang="en"><head><script>
+
+/*
+----- Mortality stats 2010 -----
+http://www.bfs.admin.ch/bfs/portal/fr/index/themen/14/02/04/key/01.html
+Maladies infectieuses						1.2%
+Tumeurs malignes						30.1%
+Diabète sucré						1.8%
+Démence						6.2%
+Appareil circulatoire						31.2%
+Appareil respiratoire, toute formes						5.7%
+Cirrhose du foie alcoolique						1.1%
+Accidents et traumatismes						6.9%
+Autre						15.74%
+*/
+var zombStats = [
+	0.1574,
+	0.1693,
+	0.4704,
+	0.4889,
+	0.5509,
+	0.8625,
+	0.9198,
+	0.9307
+];
+
+</script>
 		<title>webgl</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
@@ -82,26 +104,28 @@
 			var isBorn = true,
 				nextColor = 0xffffff,
 				palette = [
-					 0xfff79a, // pastel yellow
-					 0xa187be, // pastel violet
-					 0xf9ad81, // pastel red orange
-					 0xc4df9b, // pastel pea green
-					 0x959595, // 50% grey
-					 0xf49ac2, // pastel magenta
-					 0x8493ca, // pastel blue
-					 0x7bcdc8, // pastel green cyan
-					 0xec008c, // cmyk magenta
-					 0x9e0b0f  // dark red  
+				 0xfff79a, // pastel yellow
+				 0xa187be, // pastel violet
+				 0xf9ad81, // pastel red orange
+				 0xc4df9b, // pastel pea green
+				 0xf49ac2, // pastel magenta
+				 0x959595, // 50% grey
+				 0x8493ca, // pastel blue
+				 0x7bcdc8, // pastel green cyan
+				 0xec008c, // cmyk magenta
+				 0x9e0b0f  // dark red  
 				];
 
 			$('.borndied').toggle(function() {
 				$(this).html('died').addClass('black');
 				isBorn = false;
-				resetScene();
+				resetChildren(babyGRP);
+				resetChildren(zombGRP);
 			}, function() {
 				$(this).html('born').removeClass('black');
 				isBorn = true;
-				resetScene();
+				resetChildren(babyGRP);
+				resetChildren(zombGRP);
 			});
 				
 			var PI2 = Math.PI * 2;
@@ -215,7 +239,6 @@
 				// Start animation when loaded
 				
 				animateBabies();
-
 			}
 			
 			function makeBaby() {
@@ -236,45 +259,27 @@
 			}
 						
 			function animateBabies() {	
-				if (babyGRP.children.length < babyMax) {
-					var b = makeBaby();
-					if (b == null) return;
-					var area = 6;
-					var randvec = getRandVector(schweiz);
-					var randscale = 2;
-					var xr = b.position.x + randvec.x + randscale * (Math.random() - 0.5),
-					    yr = b.position.y + babyStart, 
-					    zr = b.position.z + randvec.z + randscale * (Math.random() - 0.5);
-					b.rotation.set( 0, ( Math.random() * 360 ) * Math.PI / 180, 0 );
-					b.position.set( xr, yr, zr );
-					new TWEEN.Tween( b.position ).to( {
-						x: xr,
-						y: yr - babyStart,
-						z: zr 
-					}, babySteps )
-					.easing( TWEEN.Easing.Cubic.EaseOut)
-					.onComplete(function() {
-						animateBabies();
-					})
-					.start();		
-					babyGRP.add(b);
-				} /*else if (babyGRP.children.length == babyMax) {
-					var b = babyGRP.children[0];
-					new TWEEN.Tween( b.position ).to( {
-						x: b.position.x,
-						y: b.position.y - 1,
-						z: b.position.z 
-					}, babySteps )
-					.onComplete(function() {
-						babyGRP.remove(b);
-						animateBabies();
-					})
-					.start();	
-				} */
-				if (!isBorn && !startedZombies) {
-					animateZombies();
-					startedZombies = true;
-				}
+				if (!isBorn) return;
+				if (babyGRP.children.length >= babyMax) return;
+				var b = makeBaby();
+				if (b == null) return;
+				var area = 6;
+				var randvec = getRandVector(schweiz);
+				var randscale = 2;
+				var xr = b.position.x + randvec.x + randscale * (Math.random() - 0.5),
+				    yr = b.position.y + babyStart, 
+				    zr = b.position.z + randvec.z + randscale * (Math.random() - 0.5);
+				b.rotation.set( 0, ( Math.random() * 360 ) * Math.PI / 180, 0 );
+				b.position.set( xr, yr, zr );
+				new TWEEN.Tween( b.position ).to( {
+					x: xr,
+					y: yr - babyStart,
+					z: zr 
+				}, babySteps )
+				.easing( TWEEN.Easing.Cubic.EaseOut)
+				.onComplete(animateBabies)
+				.start();		
+				babyGRP.add(b);
 			}
 			
 			var startedZombies = false;
@@ -292,30 +297,30 @@
 			}
 						
 			function animateZombies() {	
-				if (zombGRP.children.length < zombMax) {
-					var b = makeZombie();
-					if (b == null) return;
-					var area = 6;
-                                        var randvec = getRandVector(schweiz);
-                                        var xr = b.position.x + randvec.x,
-                                            yr = 0,
-                                            zr = b.position.z + randvec.z;
+				if (isBorn) return;
+				if (zombGRP.children.length >= zombMax) return;
+				var b = makeZombie();
+				if (b == null) return;
+				var area = 6;
+                                    var randvec = getRandVector(schweiz);
+                                    var xr = b.position.x + randvec.x,
+                                        yr = 0,
+                                        zr = b.position.z + randvec.z;
 
-					b.rotation.set( 0, ( Math.random() * 360 ) * Math.PI / 180, 0 );
-					b.position.set( xr, yr, zr );
-					new TWEEN.Tween( b.position ).to( {
-						x: xr,
-						y: zombEnd,
-						z: zr 
-					}, zombSteps )
-					//.easing( TWEEN.Easing.Cubic.In)
-					.onComplete(function() {
-						zombGRP.remove(b);
-						animateZombies();
-					})
-					.start();		
-					zombGRP.add(b);
-				}
+				b.rotation.set( 0, ( Math.random() * 360 ) * Math.PI / 180, 0 );
+				b.position.set( xr, yr, zr );
+				new TWEEN.Tween( b.position ).to( {
+					x: xr,
+					y: zombEnd,
+					z: zr 
+				}, zombSteps )
+				//.easing( TWEEN.Easing.Cubic.In)
+				.onComplete(function() {
+					zombGRP.remove(b);
+					animateZombies();
+				})
+				.start();		
+				zombGRP.add(b);
 			}
 			
 			//
@@ -357,10 +362,10 @@
             var tstart = null;
             var objinfo = $("#info");
             
-            function resetScene() {
-            	
-            	for (var b in babyGRP.children) {
-            		babyGRP.remove(babyGRP[b]);
+            function resetChildren(obj) {
+            	var obj, i;
+            	for (var i = obj.children.length - 1; i >= 0; i--) {
+            		obj.remove(obj.children[i]);
             	}
             }
 
@@ -375,7 +380,7 @@
                 
                 var speed = 1;// + tsince;
                 
-                if (isBaby) {
+                if (isBorn) {
 		            if (babyGRP.children.length > babyMax * 3/4) {
 		            	nextColor = palette[1];
 		            } else if (babyGRP.children.length > babyMax * 2/3) {
