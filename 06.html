@@ -82,7 +82,7 @@ var zombStats = [
 	<body>
           
           <div id="info">
-          	<h1><a href="#" class="borndied">born</a>/swiss</h1>
+          	<h1><a href="#" class="borndied">born</a>/swiss/2011</h1>
           	<p>a <a href="http://make.opendata.ch">make.opendata.ch</a> project</p>
           	<p>Geneva 29.09.2012</p>
           </div>
@@ -182,8 +182,8 @@ var zombStats = [
 
 				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 2000 );
 				camera.position.set( -2, 4, 5 );
-				camera.lookAt( scene.position );
-				scene.add( camera );
+				//	camera.lookAt( scene.position );
+				//scene.add( camera );
 				
 				controls = new THREE.OrbitControls( camera );
 				controls.addEventListener( 'change', render );
@@ -402,17 +402,8 @@ var zombStats = [
 
 				requestAnimationFrame( animate );
 
-				// animate morphs
-
-				var delta = clock.getDelta();
-
-				if ( morphs.length ) {
-
-					for ( var i = 0; i < morphs.length; i ++ )
-						morphs[ i ].updateAnimation( 1000 * delta );
-
-
-				}
+				// animate camera
+				controls.update();
 
 				render();
 				
