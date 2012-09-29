@@ -92,7 +92,8 @@ var zombStats = [
 		    </div>
           </div>
           
-          <img src="obj/legend.png" class="legend hidden">
+          <img src="obj/legend-baby.png" class="legend hidden" id="legend-baby">
+          <img src="obj/legend-zomb.png" class="legend hidden" id="legend-zomb">
           
 		<script src="lib/three.js"></script>
 
@@ -153,6 +154,8 @@ var zombStats = [
 
 			$('.borndied').toggle(function() {
 				$(this).html('died').addClass('black');
+				$('#legend-baby').addClass('hidden');
+				$('#legend-zomb').removeClass('hidden');
 				isBorn = false;
 				resetChildren(babyGRP);
 				resetChildren(zombGRP);
@@ -161,6 +164,8 @@ var zombStats = [
 				animateZombies();
 			}, function() {
 				$(this).html('born').removeClass('black');
+				$('#legend-zomb').addClass('hidden');
+				$('#legend-baby').removeClass('hidden');
 				isBorn = true;
 				resetChildren(babyGRP);
 				resetChildren(zombGRP);
@@ -171,7 +176,8 @@ var zombStats = [
 			
 			function readyInfo() {
 				$('#loading').hide();
-				$('.hidden').removeClass('hidden');
+				$('#info > .hidden').removeClass('hidden');
+				$('#legend-baby').removeClass('hidden');
 			}
 				
 			var PI2 = Math.PI * 2;
