@@ -1,5 +1,4 @@
 # born/died/swiss/2011
-## a Make.Opendata.ch project
 
 Animated visualization of Swiss birth and death stats using Web graphics.
 
